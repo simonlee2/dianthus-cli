@@ -121,12 +121,15 @@ func okEnv(cmd string, data any, count int, source string) envelope {
 		Data: data, Meta: meta{Count: count, Source: source, FetchedAt: nowTaipei()}}
 }
 
-func errEnv(e *toolError) envelope {
-	// Reuse the envelope shape with ok:false; the error rides in meta-free
-	// form so clients can parse it uniformly.
-	return envelope{SchemaVersion: schemaVersion, OK: false,
-		Data: map[string]any{"error": map[string]any{
-			"code": e.code, "message": e.msg, "suggestion": e.suggestion}}}
+type errEnvelope struct {
+	SchemaVersion int       `json:"schemaVersion"`
+	OK            bool      `json:"ok"`
+	Error         errorBody `json:"error"`
+}
+
+func errEnv(e *toolError) errEnvelope {
+	return errEnvelope{SchemaVersion: schemaVersion, OK: false,
+		Error: errorBody{Code: e.code, Message: e.msg, Suggestion: e.suggestion}}
 }
 
 // ---------- tool arguments ----------
@@ -158,7 +161,7 @@ func parseArgs(raw json.RawMessage) (toolArgs, *toolError) {
 	}
 	if err := json.Unmarshal(raw, &a); err != nil {
 		return a, usageErr("arguments are not a JSON object: "+err.Error(),
-			"pass an object, e.g. {\"branch\": 1, \"doctor\": \"羅佳怡\"}")
+			"pass an object, e.g. {\"branch\": \"1\", \"doctor\": \"羅佳怡\"}")
 	}
 	return a, nil
 }
@@ -525,7 +528,7 @@ func main() {
 			}
 			env, terr := runner(c, args)
 			if terr != nil {
-				env = errEnv(terr)
+				env := errEnv(terr)
 				text, _ := json.Marshal(env)
 				respond(id, map[string]any{
 					"content":           []any{map[string]any{"type": "text", "text": string(text)}},

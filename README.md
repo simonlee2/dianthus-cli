@@ -6,7 +6,7 @@ token、不寫入任何資料。
 ## 建置
 
 ```sh
-cd ~/workspace/dianthus
+cd dianthus-cli
 go build -o dianthus ./cmd/dianthus
 go build -o dianthus-mcp ./cmd/dianthus-mcp
 ```
@@ -76,12 +76,12 @@ stdio JSON-RPC，工具與 CLI 同名同義：`branches`、`progress`、`doctors
 另附 `structuredContent`；工具層錯誤以 `isError: true` 回傳，
 不以 JSON-RPC 錯誤掩蓋。
 
-## API 清單（2026-10-26 實測）
+## API 清單（原始匯入文件記錄，未於本次發佈重新連線驗證）
 
 Base：`https://api.dianthus.com.tw`。回應皆為
 `{"status","message","data":{"data": ...}}`。
 
-### 確定可用（免登入）
+### 原始文件記錄的公開端點（免登入）
 
 | 端點 | 說明 | 關鍵欄位 |
 | --- | --- | --- |
@@ -123,3 +123,27 @@ Base：`https://api.dianthus.com.tw`。回應皆為
 - `schedule` 一週可回 600+ 筆，務必用 `--doctor`／`--clinic`／
   `--available-only` 縮小範圍，或用 `--fields` 遮罩。
 - 本工具不處理掛號、取消、報到：那些要登入本人帳號，不在本工具範圍。
+
+
+## 驗證與相容性
+
+本次發佈以 Go 1.27.3（macOS ARM64）建置 CLI 與 MCP，並執行
+`go test ./...`、`go vet ./...` 及離線 CLI/MCP smoke checks。
+測試使用合成 HTTP fixtures，不連線真實醫療 API；未驗證目前上游端點的
+可用性，也未完成任何特定 MCP 客戶端的互通測試。
+
+MCP 使用換行分隔的 stdio JSON-RPC，初始化固定回報協定版本
+`2024-11-05`。請確認客戶端接受該版本；`structuredContent` 為額外輸出，
+JSON 文字結果同時保留在 `content`。
+MCP 的 branch、department、code 等 ID 參數是字串，例如
+`{"branch":"1"}`；CLI 的 `--stdin` 另外接受數字型 ID。
+MCP 的 `available_only` 對應 CLI 旗標 `--available-only`。
+兩種介面的成功及錯誤 envelope 結構一致，但提示文字與結果排序可能不同。
+錯誤 envelope 的 `error` 位於頂層，不含空白的成功資料或 metadata。
+
+`progress` 逐一查詢院區；任一院區失敗時，整個呼叫回報上游錯誤，
+不回傳先前已取得的部分結果。需要縮小失敗範圍時請指定單一院區。
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Simon Lee.
