@@ -108,14 +108,29 @@ Base：`https://api.dianthus.com.tw`。回應皆為
 | `PUT /api/v1/online-registration`、`PUT /api/v1/online-registration/cancel` | 掛號寫入／取消，需本人帳號 |
 | `GET /api/v1/online-registration/record` | 個人掛號紀錄；未帶帳號時 500 |
 
-### 未解
+### 院區／科別雙向查詢：已找到前端枚舉
 
-- `GET /api/v1/hospital/clinic-progress?branch_id&date&type`：`type` 為必填枚舉，
-  已試 morning、早診、1、am、clinic、門診、診間、看診、掛號、general、
-  health_check、postpartum、S 皆 422「The selected type is invalid」。
-  公開看板走 `branche/{id}/clinic-progress` 即可，不需要這支。
-- `GET /api/v1/hospital/branche-department-ref`：同樣要求 `type`，值未解。
-- `GET /api/v1/hospital/location-map`：回 HTML 圖片內容，非結構化資料，未包進工具。
+`GET /api/v1/hospital/branche-department-ref` 的 `type` 不是時段，而是查詢方向：
+
+| type（前端使用的大寫值） | 搭配參數 | 前端用途 |
+| --- | --- | --- |
+| `BRANCH` | `branch_id` | 取得該院區的科別；前端讀取結果首筆的 `departments` |
+| `DEPARTMENT` | `department_id` | 取得包含該科別的院區；前端使用結果的院區 `id` |
+
+例如 `?type=BRANCH&branch_id=1` 或 `?type=DEPARTMENT&department_id=2`。
+這些值來自官方公開 JavaScript 的實際呼叫程式，不是猜測；尚未加入 CLI/MCP。
+2026-10-26 直接驗證第一個範例時收到 HTTP 403，因此停止該驗證路徑，
+未測第二個範例，也未宣稱目前可匿名直接呼叫。來源與限制見
+[API type investigation](docs/api-types.md)。
+
+### 仍未確認／未包裝
+
+- `GET /api/v1/hospital/clinic-progress?branch_id&date&type`：目前公開 bundle
+  只找到生成的 API 方法宣告，未找到實際呼叫或 `type` 的枚舉定義。
+  不應把上面的 `BRANCH`／`DEPARTMENT` 自動套用到這支不同的端點。
+  [官方公開看板](https://web.dianthus.com.tw/medical-progress) 使用
+  `branche/{id}/clinic-progress`；CLI/MCP 繼續使用這個不需要 `type` 的路徑。
+- `GET /api/v1/hospital/location-map`：原始文件記錄為 HTML 圖片內容，非結構化資料，未包進工具。
 
 ## 已知限制
 

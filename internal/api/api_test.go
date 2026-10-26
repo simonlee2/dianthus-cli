@@ -39,3 +39,16 @@ func TestAmbiguousBranchRejected(t *testing.T) {
 		t.Fatalf("candidates=%v err=%v", candidates, err)
 	}
 }
+
+func TestProgressUsesPublicDashboardRoute(t *testing.T) {
+	c := &Client{HTTP: &http.Client{Transport: fixtureTransport(func(r *http.Request) (*http.Response, error) {
+		if r.Method != "GET" || r.URL.Path != "/api/v1/hospital/branche/1/clinic-progress" || r.URL.RawQuery != "" {
+			t.Fatalf("unexpected progress request: %s %s", r.Method, r.URL)
+		}
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"status":200,"data":{"data":[{"current_number":3}]}}`))}, nil
+	})}}
+	rows, _, err := c.Progress(1)
+	if err != nil || len(rows) != 1 || Num(rows[0], "current_number") != 3 {
+		t.Fatalf("rows=%v err=%v", rows, err)
+	}
+}
