@@ -45,7 +45,7 @@ type rpcRequest struct {
 
 type rpcResponse struct {
 	JSONRPC string    `json:"jsonrpc"`
-	ID      any       `json:"id,omitempty"`
+	ID      any       `json:"id"`
 	Result  any       `json:"result,omitempty"`
 	Error   *rpcError `json:"error,omitempty"`
 }
@@ -60,7 +60,9 @@ func decodeID(raw json.RawMessage) any {
 		return nil
 	}
 	var v any
-	if err := json.Unmarshal(raw, &v); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(string(raw)))
+	decoder.UseNumber() // Preserve request IDs beyond float64 integer precision.
+	if err := decoder.Decode(&v); err != nil {
 		return nil
 	}
 	return v
