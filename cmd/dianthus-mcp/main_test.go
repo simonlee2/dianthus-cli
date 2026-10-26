@@ -7,6 +7,38 @@ import (
 	"testing"
 )
 
+func TestParseErrorResponseIncludesNullID(t *testing.T) {
+	b, err := json.Marshal(rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: -32700, Message: "parse error"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(b, &obj); err != nil {
+		t.Fatal(err)
+	}
+	if string(obj["id"]) != "null" || obj["result"] != nil {
+		t.Fatalf("invalid parse error response: %s", b)
+	}
+}
+
+func TestResponsePreservesRequestID(t *testing.T) {
+	for _, raw := range []string{`9007199254740993`, `0`, `"request-1"`} {
+		t.Run(raw, func(t *testing.T) {
+			b, err := json.Marshal(rpcResponse{JSONRPC: "2.0", ID: decodeID(json.RawMessage(raw)), Result: map[string]any{}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var obj map[string]json.RawMessage
+			if err := json.Unmarshal(b, &obj); err != nil {
+				t.Fatal(err)
+			}
+			if string(obj["id"]) != raw {
+				t.Fatalf("id changed: want %s got %s", raw, obj["id"])
+			}
+		})
+	}
+}
+
 func TestBranchArgumentTyping(t *testing.T) {
 	a, err := parseArgs(json.RawMessage(`{"branch":"1"}`))
 	if err != nil || a.Branch != "1" {
